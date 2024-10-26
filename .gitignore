@@ -18,6 +18,10 @@ tags
 pkg/
 *.tgz
 
+# Ignore config
+/go-apt-cacher.toml
+/go-apt-mirror.toml
+
 # Ignore Goland
 /.idea/
 
