@@ -1,0 +1,51 @@
+---
+version: 2
+before:
+  hooks:
+  - go mod tidy
+  - go mod download
+builds:
+- id: go-apt-cacher
+  main: ./cmd/go-apt-cacher
+  binary: go-apt-cacher
+  env:
+  - CGO_ENABLED=0
+  goos:
+  - darwin
+  - linux
+  goarch:
+  - amd64
+  - arm64
+  flags:
+  - -trimpath
+  ldflags:
+  - -s -w
+  - -buildid=
+  - -extldflags -static
+- id: go-apt-mirror
+  main: ./cmd/go-apt-mirror
+  binary: go-apt-mirror
+  env:
+  - CGO_ENABLED=0
+  goos:
+  - darwin
+  - linux
+  goarch:
+  - amd64
+  - arm64
+  flags:
+  - -trimpath
+  ldflags:
+  - -s -w
+  - -buildid=
+  - -extldflags -static
+archives:
+- name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+  format_overrides:
+  - goos: windows
+    format: zip
+checksum:
+  name_template: "{{ .ProjectName }}_sha256sums.txt"
+  algorithm: sha256
+release:
+  prerelease: auto

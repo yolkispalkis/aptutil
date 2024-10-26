@@ -20,3 +20,6 @@ pkg/
 
 # Ignore go.sum
 /go.sum
+
+# Ignore goreleaser
+/dist/
