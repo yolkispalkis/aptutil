@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/cybozu-go/aptutil/apt"
@@ -255,6 +256,30 @@ func (m *Mirror) updateSuite(ctx context.Context, suite string, itemMap map[stri
 			base = base[0 : len(base)-len(path.Ext(base))]
 			if base == "Sources" {
 				continue
+			}
+			tmpMap[p] = fil
+		}
+		indexMap = tmpMap
+	}
+
+	// WORKAROUND: some (raspberry pi os) repositories returns wrong
+	// contents for non-existent files such as untested/Contents.
+	if len(m.mc.Suites) > 0 && len(m.mc.Sections) > 0 {
+		tmpMap := make(map[string][]*apt.FileInfo)
+		for p, fil := range indexMap {
+			sp := strings.Split(p, "/")
+			if len(sp) > 3 {
+				mm := map[string]struct{}{}
+				for _, s := range m.mc.Sections {
+					mm[s] = struct{}{}
+				}
+				if _, ok := mm[sp[2]]; !ok {
+					log.Warn("exclude unknown section", map[string]interface{}{
+						"repo": m.id,
+						"path": p,
+					})
+					continue
+				}
 			}
 			tmpMap[p] = fil
 		}
