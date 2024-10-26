@@ -20,6 +20,15 @@ jobs:
         with:
           go-version: 'stable'
       -
+        name: Go Mod
+        run: |
+          go mod tidy
+          go mod download
+      -
+        name: Go Testing
+        run: |
+          go test -v ./...
+      -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
