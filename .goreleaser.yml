@@ -49,3 +49,7 @@ checksum:
   algorithm: sha256
 release:
   prerelease: auto
+  header: |
+    # !!! CAUTION !!!
+    This release is a private build with personal fixes.
+    Please consider the possibility that the release itself may be changed or removed.
