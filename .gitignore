@@ -18,5 +18,8 @@ tags
 pkg/
 *.tgz
 
+# Ignore Goland
+/.idea/
+
 # Ignore goreleaser
 /dist/
