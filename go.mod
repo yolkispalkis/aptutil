@@ -4,7 +4,6 @@ go 1.23.2
 
 require (
 	github.com/BurntSushi/toml v1.4.0
-	github.com/cybozu-go/aptutil v1.4.2
 	github.com/cybozu-go/log v1.7.0
 	github.com/cybozu-go/well v1.11.2
 	github.com/pkg/errors v0.9.1

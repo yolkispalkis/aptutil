@@ -7,8 +7,9 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/cybozu-go/aptutil/apt"
 	"github.com/pkg/errors"
+
+	"github.com/takumin/aptutil/apt"
 )
 
 const (
