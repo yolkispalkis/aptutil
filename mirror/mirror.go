@@ -249,6 +249,28 @@ func (m *Mirror) updateSuite(ctx context.Context, suite string, itemMap map[stri
 		indexMap = tmpMap
 	}
 
+	// WORKAROUND: Some (raspberry pi os) repositories return
+	// uncompressed files, such as Packages files, as actually
+	// compressed files.
+	//
+	// NOTES: The apt-get command starts by obtaining a compressed file,
+	// so if both compressed and uncompressed files are defined, the above
+	// error will be handled by not downloading the uncompressed file.
+	if len(indexMap) > 1 {
+		for p, _ := range indexMap {
+			ext := path.Ext(p)
+			if len(ext) > 0 {
+				if _, ok := indexMap[p[:len(p)-len(ext)]]; ok {
+					log.Debug("exclude uncompressed files", map[string]interface{}{
+						"repo": m.id,
+						"path": p[:len(p)-len(ext)],
+					})
+					delete(indexMap, p[:len(p)-len(ext)])
+				}
+			}
+		}
+	}
+
 	// download (or reuse) all indices
 	indices, err := m.downloadIndices(ctx, indexMap, byhash)
 	if err != nil {
