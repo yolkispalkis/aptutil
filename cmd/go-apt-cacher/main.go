@@ -6,9 +6,10 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
-	"github.com/cybozu-go/aptutil/cacher"
 	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/well"
+
+	"github.com/takumin/aptutil/cacher"
 )
 
 const (

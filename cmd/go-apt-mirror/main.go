@@ -6,8 +6,9 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
-	"github.com/cybozu-go/aptutil/mirror"
 	"github.com/cybozu-go/log"
+
+	"github.com/takumin/aptutil/mirror"
 )
 
 const (
