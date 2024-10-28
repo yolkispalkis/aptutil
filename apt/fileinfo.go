@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"io"
 	"path"
 
+	"github.com/minio/sha256-simd"
 	"github.com/pkg/errors"
 )
 

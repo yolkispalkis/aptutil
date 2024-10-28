@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/minio/sha256-simd"
 )
 
 func testFileInfoSame(t *testing.T) {
