@@ -59,6 +59,14 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		// http.StatusOK
 		defer f.Close()
+
+		// Получаем информацию о файле
+		fi, ok := c.info[p]
+		if ok && !fi.GetLastModified().IsZero() {
+			// Устанавливаем заголовок Last-Modified
+			w.Header().Set("Last-Modified", fi.GetLastModified().Format(time.RFC1123))
+		}
+		
 		if r.Method == "GET" {
 			var zeroTime time.Time
 			http.ServeContent(w, r, path.Base(p), zeroTime, f)
