@@ -1,4 +1,4 @@
-module github.com/takumin/aptutil
+module github.com/yolkispalkis/aptutil
 
 go 1.23.2
 
