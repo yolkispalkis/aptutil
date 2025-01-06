@@ -29,7 +29,7 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// Проверка заголовка If-Modified-Since
+	// Check If-Modified-Since header
 	ifModifiedSince := r.Header.Get("If-Modified-Since")
 	ifModifiedTime, err := time.Parse(time.RFC1123, ifModifiedSince)
 	if err == nil {
@@ -57,25 +57,29 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer f.Close()
 
-	// Получаем информацию о файле для установки заголовков
 	c.fiLock.RLock()
 	fi, ok := c.info[p]
 	c.fiLock.RUnlock()
 
-	// Устанавливаем заголовок Last-Modified
+	// Set Last-Modified header
 	if ok && !fi.GetLastModified().IsZero() {
 		w.Header().Set("Last-Modified", fi.GetLastModified().Format(time.RFC1123))
 	}
 
-	// Определяем Content-Type
-	ct := mime.TypeByExtension(path.Ext(p))
+	// Determine Content-Type
+	ext := path.Ext(p)
+	ct := mime.TypeByExtension(ext)
 	if ct == "" {
-		ct = "application/octet-stream"
+		// If extension is empty or unknown, try to detect content type
+		if ext == "" || ext == ".html" || ext == ".htm" {
+			ct = "text/html; charset=utf-8"
+		} else {
+			ct = "application/octet-stream"
+		}
 	}
 	w.Header().Set("Content-Type", ct)
 
 	if r.Method == "HEAD" {
-		// Для HEAD запроса достаточно установить заголовки и статус
 		stat, err := f.Stat()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -86,6 +90,5 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Для GET запроса используем ServeContent
 	http.ServeContent(w, r, path.Base(p), fi.GetLastModified(), f)
 }
