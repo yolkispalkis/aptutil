@@ -69,8 +69,10 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Determine Content-Type
 	ext := path.Ext(p)
 	ct := mime.TypeByExtension(ext)
-	w.Header().Set("Content-Type", ct)
-
+	if ct != "" {
+		w.Header().Set("Content-Type", ct)
+	}
+	
 	if r.Method == "HEAD" {
 		stat, err := f.Stat()
 		if err != nil {
