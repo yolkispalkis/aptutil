@@ -15,11 +15,11 @@ import (
 
 // FileInfo is a set of meta data of a file.
 type FileInfo struct {
-	path      string
-	size      uint64
-	md5sum    []byte // nil means no MD5 checksum to be checked.
-	sha1sum   []byte // nil means no SHA1 ...
-	sha256sum []byte // nil means no SHA256 ...
+	path         string
+	size         uint64
+	md5sum       []byte    // nil means no MD5 checksum to be checked.
+	sha1sum      []byte    // nil means no SHA1 ...
+	sha256sum    []byte    // nil means no SHA256 ...
 	lastModified time.Time // Всратая переменная ...
 }
 
@@ -116,11 +116,12 @@ func (fi *FileInfo) SHA256Path() string {
 }
 
 type fileInfoJSON struct {
-	Path      string
-	Size      int64
-	MD5Sum    string
-	SHA1Sum   string
-	SHA256Sum string
+	Path         string
+	Size         int64
+	MD5Sum       string
+	SHA1Sum      string
+	SHA256Sum    string
+	LastModified string
 }
 
 // MarshalJSON implements json.Marshaler
@@ -136,6 +137,9 @@ func (fi *FileInfo) MarshalJSON() ([]byte, error) {
 	}
 	if fi.sha256sum != nil {
 		fij.SHA256Sum = hex.EncodeToString(fi.sha256sum)
+	}
+	if !fi.lastModified.IsZero() {
+		fij.LastModified = fi.lastModified.Format(time.RFC1123)
 	}
 	return json.Marshal(&fij)
 }
@@ -163,6 +167,12 @@ func (fi *FileInfo) UnmarshalJSON(data []byte) error {
 	fi.md5sum = md5sum
 	fi.sha1sum = sha1sum
 	fi.sha256sum = sha256sum
+	if fij.LastModified != "" {
+		t, err := time.Parse(time.RFC1123, fij.LastModified)
+		if err == nil {
+			fi.lastModified = t
+		}
+	}
 	return nil
 }
 
