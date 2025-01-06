@@ -36,9 +36,6 @@ func (fi *FileInfo) SetLastModified(t time.Time) {
 
 // Same returns true if t has the same checksum values.
 func (fi *FileInfo) Same(t *FileInfo) bool {
-	if fi == t {
-		return true
-	}
 	if fi.path != t.path || fi.size != t.size {
 		return false
 	}
@@ -72,12 +69,9 @@ func (fi *FileInfo) HasChecksum() bool {
 // CalcChecksums calculates checksums and stores them in fi.
 func (fi *FileInfo) CalcChecksums(data []byte) {
 	fi.size = uint64(len(data))
-	fi.md5sum = make([]byte, 16)
-	md5.Sum(fi.md5sum[:0], data)
-	fi.sha1sum = make([]byte, 20)
-	sha1.Sum(fi.sha1sum[:0], data)
-	fi.sha256sum = make([]byte, 32)
-	sha256.Sum256(fi.sha256sum[:0], data)
+	fi.md5sum = md5.Sum(data)[:]
+	fi.sha1sum = sha1.Sum(data)[:]
+	fi.sha256sum = sha256.Sum256(data)[:]
 }
 
 // AddPrefix creates a new FileInfo by prepending prefix to the path.
