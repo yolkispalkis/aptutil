@@ -32,6 +32,21 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	// Проверка заголовка If-Modified-Since
+	ifModifiedSince := r.Header.Get("If-Modified-Since")
+	if ifModifiedSince != "" {
+        	t, err := time.Parse(time.RFC1123, ifModifiedSince)
+        	if err == nil {
+			c.fiLock.RLock()
+			fi, ok := c.info[p]
+			c.fiLock.RUnlock()
+			if ok && !fi.lastModified.After(t) {
+				w.WriteHeader(http.StatusNotModified)
+				return
+			}
+		}
+	}
+
 	status, f, err := c.Get(p)
 
 	switch {
