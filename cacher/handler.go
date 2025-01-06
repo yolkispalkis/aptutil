@@ -40,7 +40,7 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			c.fiLock.RLock()
 			fi, ok := c.info[p]
 			c.fiLock.RUnlock()
-			if ok && !fi.lastModified.After(t) {
+			if ok && !fi.GetLastModified().After(t) {
 				w.WriteHeader(http.StatusNotModified)
 				return
 			}
