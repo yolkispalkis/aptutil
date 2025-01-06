@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/takumin/aptutil/apt"
+	"github.com/yolkispalkis/aptutil/apt"
 )
 
 func insert(cm *Storage, data []byte, path string) (*apt.FileInfo, error) {
