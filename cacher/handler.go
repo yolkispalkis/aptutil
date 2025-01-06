@@ -71,7 +71,7 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ct := mime.TypeByExtension(ext)
 	if ct == "" {
 		// If extension is empty or unknown, try to detect content type
-		if ext == "" || ext == ".html" || ext == ".htm" {
+		if ext == ".html" || ext == ".htm" {
 			ct = "text/html; charset=utf-8"
 		} else {
 			ct = "application/octet-stream"
