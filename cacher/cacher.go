@@ -20,7 +20,7 @@ import (
 	"github.com/cybozu-go/well"
 	"github.com/pkg/errors"
 
-	"github.com/takumin/aptutil/apt"
+	"github.com/yolkispalkis/aptutil/apt"
 )
 
 const (
