@@ -69,9 +69,12 @@ func (fi *FileInfo) HasChecksum() bool {
 // CalcChecksums calculates checksums and stores them in fi.
 func (fi *FileInfo) CalcChecksums(data []byte) {
 	fi.size = uint64(len(data))
-	fi.md5sum = md5.Sum(data)[:]
-	fi.sha1sum = sha1.Sum(data)[:]
-	fi.sha256sum = sha256.Sum256(data)[:]
+	sum := md5.Sum(data)
+	fi.md5sum = sum[:]
+	sum2 := sha1.Sum(data)
+	fi.sha1sum = sum2[:]
+	sum3 := sha256.Sum256(data)
+	fi.sha256sum = sum3[:]
 }
 
 // AddPrefix creates a new FileInfo by prepending prefix to the path.
