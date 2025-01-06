@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"io"
 	"path"
+	"time"
 
 	"github.com/minio/sha256-simd"
 	"github.com/pkg/errors"
