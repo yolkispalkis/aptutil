@@ -9,7 +9,7 @@ import (
 	"github.com/cybozu-go/log"
 	"github.com/cybozu-go/well"
 
-	"github.com/takumin/aptutil/cacher"
+	"github.com/yolkispalkis/aptutil/cacher"
 )
 
 const (
