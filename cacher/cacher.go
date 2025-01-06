@@ -322,6 +322,15 @@ func (c *Cacher) download(ctx context.Context, p string, u *url.URL, valid *apt.
 	}
 
 	defer closeRespBody(resp)
+	
+	lastModified := resp.Header.Get("Last-Modified")
+    	if lastModified != "" {
+     		t, err := time.Parse(time.RFC1123, lastModified)
+        	if err == nil {
+	        	fi.lastModified = t
+        	}
+  	}
+	
 	statusCode = resp.StatusCode
 	if statusCode != 200 {
 		return
