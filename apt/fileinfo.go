@@ -24,6 +24,16 @@ type FileInfo struct {
 	lastModified time.Time // Всратая переменная ...
 }
 
+// GetLastModified возвращает время последнего изменения файла.
+func (fi *FileInfo) GetLastModified() time.Time {
+	return fi.lastModified
+}
+
+// SetLastModified устанавливает время последнего изменения файла.
+func (fi *FileInfo) SetLastModified(t time.Time) {
+	fi.lastModified = t
+}
+
 // Same returns true if t has the same checksum values.
 func (fi *FileInfo) Same(t *FileInfo) bool {
 	if fi == t {
