@@ -8,7 +8,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/cybozu-go/log"
 
-	"github.com/takumin/aptutil/mirror"
+	"github.com/yolkispalkis/aptutil/mirror"
 )
 
 const (
