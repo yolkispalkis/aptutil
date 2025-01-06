@@ -304,11 +304,6 @@ func (c *Cacher) download(ctx context.Context, p string, u *url.URL, valid *apt.
 	header.Add("Cache-Control", "max-age=0")
 	header.Add("User-Agent", "Debian APT-HTTP/1.3 (aptutil)")
 
-	// Добавляем заголовок If-Modified-Since, если есть информация о времени последнего изменения
-	if valid != nil && !valid.GetLastModified().IsZero() {
-		header.Set("If-Modified-Since", valid.GetLastModified().Format(time.RFC1123))
-	}
-
 	req := &http.Request{
 		Method:     "GET",
 		URL:        u,
@@ -327,15 +322,6 @@ func (c *Cacher) download(ctx context.Context, p string, u *url.URL, valid *apt.
 	}
 
 	defer closeRespBody(resp)
-
-	// Если сервер вернул 304 Not Modified, файл не изменился, и загружать его не нужно
-	if statusCode == http.StatusNotModified {
-		log.Debug("file not modified", map[string]interface{}{
-			"path": p,
-			"url":  u.String(),
-		})
-		return
-	}
 
 	statusCode = resp.StatusCode
 	if statusCode != 200 {
