@@ -303,6 +303,7 @@ func (c *Cacher) download(ctx context.Context, p string, u *url.URL, valid *apt.
 	header := http.Header{}
 	header.Add("Cache-Control", "max-age=0")
 	header.Add("User-Agent", "Debian APT-HTTP/1.3 (aptutil)")
+
 	// Добавляем заголовок If-Modified-Since, если есть информация о времени последнего изменения
 	if valid != nil && !valid.GetLastModified().IsZero() {
 		header.Set("If-Modified-Since", valid.GetLastModified().Format(time.RFC1123))
