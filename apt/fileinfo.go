@@ -24,12 +24,12 @@ type FileInfo struct {
 	lastModified time.Time // Всратая переменная ...
 }
 
-// GetLastModified возвращает время последнего изменения файла.
+// GetLastModified returns the time when the file was last modified.
 func (fi *FileInfo) GetLastModified() time.Time {
 	return fi.lastModified
 }
 
-// SetLastModified устанавливает время последнего изменения файла.
+// SetLastModified sets the time when the file was last modified.
 func (fi *FileInfo) SetLastModified(t time.Time) {
 	fi.lastModified = t
 }
@@ -39,19 +39,16 @@ func (fi *FileInfo) Same(t *FileInfo) bool {
 	if fi == t {
 		return true
 	}
-	if fi.path != t.path {
+	if fi.path != t.path || fi.size != t.size {
 		return false
 	}
-	if fi.size != t.size {
+	if fi.md5sum != nil && !bytes.Equal(fi.md5sum, t.md5sum) {
 		return false
 	}
-	if fi.md5sum != nil && bytes.Compare(fi.md5sum, t.md5sum) != 0 {
+	if fi.sha1sum != nil && !bytes.Equal(fi.sha1sum, t.sha1sum) {
 		return false
 	}
-	if fi.sha1sum != nil && bytes.Compare(fi.sha1sum, t.sha1sum) != 0 {
-		return false
-	}
-	if fi.sha256sum != nil && bytes.Compare(fi.sha256sum, t.sha256sum) != 0 {
+	if fi.sha256sum != nil && !bytes.Equal(fi.sha256sum, t.sha256sum) {
 		return false
 	}
 	return true
@@ -74,20 +71,25 @@ func (fi *FileInfo) HasChecksum() bool {
 
 // CalcChecksums calculates checksums and stores them in fi.
 func (fi *FileInfo) CalcChecksums(data []byte) {
-	md5sum := md5.Sum(data)
-	sha1sum := sha1.Sum(data)
-	sha256sum := sha256.Sum256(data)
 	fi.size = uint64(len(data))
-	fi.md5sum = md5sum[:]
-	fi.sha1sum = sha1sum[:]
-	fi.sha256sum = sha256sum[:]
+	fi.md5sum = make([]byte, 16)
+	md5.Sum(fi.md5sum[:0], data)
+	fi.sha1sum = make([]byte, 20)
+	sha1.Sum(fi.sha1sum[:0], data)
+	fi.sha256sum = make([]byte, 32)
+	sha256.Sum256(fi.sha256sum[:0], data)
 }
 
 // AddPrefix creates a new FileInfo by prepending prefix to the path.
 func (fi *FileInfo) AddPrefix(prefix string) *FileInfo {
-	newFI := *fi
-	newFI.path = path.Join(path.Clean(prefix), fi.path)
-	return &newFI
+	return &FileInfo{
+		path:         path.Join(path.Clean(prefix), fi.path),
+		size:         fi.size,
+		md5sum:       fi.md5sum,
+		sha1sum:      fi.sha1sum,
+		sha256sum:    fi.sha256sum,
+		lastModified: fi.lastModified,
+	}
 }
 
 // MD5SumPath returns the filepath for "by-hash" with md5 checksum.
@@ -127,19 +129,20 @@ func (fi *FileInfo) SHA256Path() string {
 }
 
 type fileInfoJSON struct {
-	Path         string
-	Size         int64
-	MD5Sum       string
-	SHA1Sum      string
-	SHA256Sum    string
-	LastModified string
+	Path         string `json:"Path"`
+	Size         int64  `json:"Size"`
+	MD5Sum       string `json:"MD5Sum,omitempty"`
+	SHA1Sum      string `json:"SHA1Sum,omitempty"`
+	SHA256Sum    string `json:"SHA256Sum,omitempty"`
+	LastModified string `json:"LastModified,omitempty"`
 }
 
 // MarshalJSON implements json.Marshaler
 func (fi *FileInfo) MarshalJSON() ([]byte, error) {
-	var fij fileInfoJSON
-	fij.Path = fi.path
-	fij.Size = int64(fi.size)
+	fij := fileInfoJSON{
+		Path: fi.path,
+		Size: int64(fi.size),
+	}
 	if fi.md5sum != nil {
 		fij.MD5Sum = hex.EncodeToString(fi.md5sum)
 	}
@@ -163,21 +166,28 @@ func (fi *FileInfo) UnmarshalJSON(data []byte) error {
 	}
 	fi.path = fij.Path
 	fi.size = uint64(fij.Size)
-	md5sum, err := hex.DecodeString(fij.MD5Sum)
-	if err != nil {
-		return errors.Wrap(err, "UnmarshalJSON for "+fij.Path)
+	if fij.MD5Sum != "" {
+		md5sum, err := hex.DecodeString(fij.MD5Sum)
+		if err != nil {
+			return errors.Wrap(err, "UnmarshalJSON for "+fij.Path)
+		}
+		fi.md5sum = md5sum
 	}
-	sha1sum, err := hex.DecodeString(fij.SHA1Sum)
-	if err != nil {
-		return errors.Wrap(err, "UnmarshalJSON for "+fij.Path)
+	if fij.SHA1Sum != "" {
+		sha1sum, err := hex.DecodeString(fij.SHA1Sum)
+		if err != nil {
+			return errors.Wrap(err, "UnmarshalJSON for "+fij.Path)
+		}
+		fi.sha1sum = sha1sum
 	}
-	sha256sum, err := hex.DecodeString(fij.SHA256Sum)
-	if err != nil {
-		return errors.Wrap(err, "UnmarshalJSON for "+fij.Path)
+	if fij.SHA256Sum != "" {
+		sha256sum, err := hex.DecodeString(fij.SHA256Sum)
+		if err != nil {
+			return errors.Wrap(err, "UnmarshalJSON for "+fij.Path)
+		}
+		fi.sha256sum = sha256sum
 	}
-	fi.md5sum = md5sum
-	fi.sha1sum = sha1sum
-	fi.sha256sum = sha256sum
+
 	if fij.LastModified != "" {
 		t, err := time.Parse(time.RFC1123, fij.LastModified)
 		if err == nil {
