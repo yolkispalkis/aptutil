@@ -67,13 +67,6 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Last-Modified", fi.GetLastModified().Format(time.RFC1123))
 	}
 
-	// Определяем Content-Type
-	ct := mime.TypeByExtension(path.Ext(p))
-	if ct == "" {
-		ct = "application/octet-stream"
-	}
-	w.Header().Set("Content-Type", ct)
-
 	if r.Method == "HEAD" {
 		// Для HEAD запроса достаточно установить заголовки и статус
 		stat, err := f.Stat()
@@ -81,6 +74,14 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		// Определяем Content-Type
+		ct := mime.TypeByExtension(path.Ext(p))
+		if ct == "" {
+			ct = "application/octet-stream"
+		}
+		w.Header().Set("Content-Type", ct)
+
 		w.Header().Set("Content-Length", strconv.FormatInt(stat.Size(), 10))
 		w.WriteHeader(http.StatusOK)
 		return
