@@ -169,37 +169,26 @@ func (fi *FileInfo) UnmarshalJSON(data []byte) error {
 	}
 	fi.path = fij.Path
 	fi.size = uint64(fij.Size)
-	if fij.MD5Sum != "" {
-		md5sum, err := hex.DecodeString(fij.MD5Sum)
-		if err != nil {
-			return errors.Wrap(err, "UnmarshalJSON for "+fij.Path)
-		}
-		fi.md5sum = md5sum
+	md5sum, err := hex.DecodeString(fij.MD5Sum)
+	if err != nil {
+		return errors.Wrap(err, "UnmarshalJSON for "+fij.Path)
 	}
-	if fij.SHA1Sum != "" {
-		sha1sum, err := hex.DecodeString(fij.SHA1Sum)
-		if err != nil {
-			return errors.Wrap(err, "UnmarshalJSON for "+fij.Path)
-		}
-		fi.sha1sum = sha1sum
+	sha1sum, err := hex.DecodeString(fij.SHA1Sum)
+	if err != nil {
+		return errors.Wrap(err, "UnmarshalJSON for "+fij.Path)
 	}
-	if fij.SHA256Sum != "" {
-		sha256sum, err := hex.DecodeString(fij.SHA256Sum)
-		if err != nil {
-			return errors.Wrap(err, "UnmarshalJSON for "+fij.Path)
-		}
-		fi.sha256sum = sha256sum
+	sha256sum, err := hex.DecodeString(fij.SHA256Sum)
+	if err != nil {
+		return errors.Wrap(err, "UnmarshalJSON for "+fij.Path)
 	}
-
-	if fij.LastModified != "" {
-		t, err := time.Parse(time.RFC1123, fij.LastModified)
-		if err == nil {
-			fi.lastModified = t
-		}
+	lastModified, err := time.Parse(time.RFC1123, fij.LastModified)
+	if err != nil {
+		return errors.Wrap(err, "UnmarshalJSON for "+fij.Path)
 	}
 	fi.md5sum = md5sum
 	fi.sha1sum = sha1sum
 	fi.sha256sum = sha256sum
+	fi.lastModified = lastModified
 	return nil
 }
 
