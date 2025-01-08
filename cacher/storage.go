@@ -10,7 +10,7 @@ import (
 	"github.com/cybozu-go/log"
 	"github.com/pkg/errors"
 
-	"github.com/takumin/aptutil/apt"
+	"github.com/yolkispalkis/aptutil/apt"
 )
 
 const (
