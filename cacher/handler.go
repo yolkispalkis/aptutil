@@ -29,19 +29,6 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// Проверка заголовка If-Modified-Since
-	ifModifiedSince := r.Header.Get("If-Modified-Since")
-	ifModifiedTime, err := time.Parse(time.RFC1123, ifModifiedSince)
-	if err == nil {
-		c.fiLock.RLock()
-		fi, ok := c.info[p]
-		c.fiLock.RUnlock()
-		if ok && !fi.GetLastModified().After(ifModifiedTime) {
-			w.WriteHeader(http.StatusNotModified)
-			return
-		}
-	}
-
 	status, f, err := c.Get(p)
 	if err != nil {
 		http.Error(w, err.Error(), status)
@@ -62,6 +49,19 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fi, ok := c.info[p]
 	c.fiLock.RUnlock()
 
+	// Проверка заголовка If-Modified-Since
+	ifModifiedSince := r.Header.Get("If-Modified-Since")
+	ifModifiedTime, err := time.Parse(time.RFC1123, ifModifiedSince)
+	if err == nil {
+		if ok && !fi.GetLastModified().After(ifModifiedTime) {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+	}
+
+	// Определяем Content-Type
+	ct := mime.TypeByExtension(path.Ext(p))
+
 	// Устанавливаем заголовок Last-Modified
 	if ok && !fi.GetLastModified().IsZero() {
 		w.Header().Set("Last-Modified", fi.GetLastModified().Format(time.RFC1123))
@@ -75,8 +75,6 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Определяем Content-Type
-		ct := mime.TypeByExtension(path.Ext(p))
 		if ct == "" {
 			ct = "application/octet-stream"
 		}
@@ -85,6 +83,10 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", strconv.FormatInt(stat.Size(), 10))
 		w.WriteHeader(http.StatusOK)
 		return
+	}
+
+	if ct != "" {
+		w.Header().Set("Content-Type", ct)
 	}
 
 	// Для GET запроса используем ServeContent
