@@ -45,9 +45,7 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer f.Close()
 
 	// Получаем информацию о файле для установки заголовков
-	c.fiLock.RLock()
 	fi, ok := c.info[p]
-	c.fiLock.RUnlock()
 
 	// Проверка заголовка If-Modified-Since
 	ifModifiedSince := r.Header.Get("If-Modified-Since")
