@@ -70,19 +70,18 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Last-Modified", fi.GetLastModified().Format(time.RFC1123))
 	}
 
+	w.Header().Set("Content-Length", strconv.FormatInt(stat.Size(), 10))
+
 	if r.Method == "HEAD" {
 		// Для HEAD запроса достаточно установить заголовки и статус
 		if ct == "" {
 			ct = "application/octet-stream"
 		}
 		w.Header().Set("Content-Type", ct)
-
-		w.Header().Set("Content-Length", strconv.FormatInt(stat.Size(), 10))
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
-	w.Header().Set("Content-Length", strconv.FormatInt(stat.Size(), 10))
 	if ct != "" {
 		w.Header().Set("Content-Type", ct)
 	}
