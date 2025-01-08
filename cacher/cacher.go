@@ -322,7 +322,6 @@ func (c *Cacher) download(ctx context.Context, p string, u *url.URL, valid *apt.
 	}
 
 	defer closeRespBody(resp)
-
 	statusCode = resp.StatusCode
 	if statusCode != http.StatusOK {
 		return
