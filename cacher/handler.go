@@ -46,6 +46,11 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Получаем информацию о файле для установки заголовков
 	fi, ok := c.info[p]
+	stat, err := f.Stat()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	// Проверка заголовка If-Modified-Since
 	ifModifiedSince := r.Header.Get("If-Modified-Since")
@@ -67,12 +72,6 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "HEAD" {
 		// Для HEAD запроса достаточно установить заголовки и статус
-		stat, err := f.Stat()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
 		if ct == "" {
 			ct = "application/octet-stream"
 		}
@@ -83,6 +82,7 @@ func (c cacheHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Length", strconv.FormatInt(stat.Size(), 10))
 	if ct != "" {
 		w.Header().Set("Content-Type", ct)
 	}
