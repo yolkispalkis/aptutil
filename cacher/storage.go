@@ -6,12 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"sync/atomic"
 
 	"github.com/cybozu-go/log"
 	"github.com/pkg/errors"
 
-	"github.com/yolkispalkis/aptutil/apt"
+	"github.com/takumin/aptutil/apt"
 )
 
 const (
@@ -32,7 +31,7 @@ type entry struct {
 
 	// for container/heap.
 	// atime is used as priorities.
-	atime int64
+	atime uint64
 	index int
 }
 
@@ -52,8 +51,8 @@ type Storage struct {
 	mu     sync.Mutex
 	used   uint64
 	cache  map[string]*entry
-	lru    entryHeap
-	lclock int64 // ditto
+	lru    []*entry // for container/heap
+	lclock uint64   // ditto
 }
 
 // NewStorage creates a Storage.
@@ -81,40 +80,40 @@ func NewStorage(dir string, capacity uint64) *Storage {
 	}
 }
 
-// entryHeap implements heap.Interface.
-type entryHeap []*entry
-
 // Len implements heap.Interface.
-func (h entryHeap) Len() int {
-	return len(h)
+func (cm *Storage) Len() int {
+	return len(cm.lru)
 }
 
 // Less implements heap.Interface.
-func (h entryHeap) Less(i, j int) bool {
-	return h[i].atime < h[j].atime
+func (cm *Storage) Less(i, j int) bool {
+	return cm.lru[i].atime < cm.lru[j].atime
 }
 
 // Swap implements heap.Interface.
-func (h entryHeap) Swap(i, j int) {
-	h[i], h[j] = h[j], h[i]
-	h[i].index = i
-	h[j].index = j
+func (cm *Storage) Swap(i, j int) {
+	cm.lru[i], cm.lru[j] = cm.lru[j], cm.lru[i]
+	cm.lru[i].index = i
+	cm.lru[j].index = j
 }
 
 // Push implements heap.Interface.
-func (h *entryHeap) Push(x interface{}) {
-	e := x.(*entry)
-	n := len(*h)
+func (cm *Storage) Push(x interface{}) {
+	e, ok := x.(*entry)
+	if !ok {
+		panic("Storage.Push: wrong type")
+	}
+	n := len(cm.lru)
 	e.index = n
-	*h = append(*h, e)
+	cm.lru = append(cm.lru, e)
 }
 
 // Pop implements heap.Interface.
-func (h *entryHeap) Pop() interface{} {
-	n := len(*h)
-	e := (*h)[n-1]
+func (cm *Storage) Pop() interface{} {
+	n := len(cm.lru)
+	e := cm.lru[n-1]
 	e.index = -1 // for safety
-	*h = (*h)[0 : n-1]
+	cm.lru = cm.lru[0 : n-1]
 	return e
 }
 
@@ -122,7 +121,7 @@ func (h *entryHeap) Pop() interface{} {
 // cm.mu lock must be acquired beforehand.
 func (cm *Storage) maint() {
 	for cm.capacity > 0 && cm.used > cm.capacity {
-		e := heap.Pop(&cm.lru).(*entry)
+		e := heap.Pop(cm).(*entry)
 		delete(cm.cache, e.Path())
 		cm.used -= e.Size()
 		if err := os.Remove(filepath.Join(cm.dir, e.FilePath())); err != nil {
@@ -137,7 +136,13 @@ func (cm *Storage) maint() {
 }
 
 func readData(path string) ([]byte, error) {
-	return ioutil.ReadFile(path)
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	return ioutil.ReadAll(f)
 }
 
 // Load loads existing items in filesystem.
@@ -168,10 +173,12 @@ func (cm *Storage) Load() error {
 		e := &entry{
 			// delay calculation of checksums.
 			FileInfo: apt.MakeFileInfoNoChecksum(subpath, size),
-			atime:    atomic.AddInt64(&cm.lclock, 1),
+			atime:    cm.lclock,
+			index:    len(cm.lru),
 		}
 		cm.used += size
-		cm.lru.Push(e)
+		cm.lclock++
+		cm.lru = append(cm.lru, e)
 		cm.cache[subpath] = e
 		log.Debug("Storage.Load", map[string]interface{}{
 			"path": subpath,
@@ -182,7 +189,7 @@ func (cm *Storage) Load() error {
 	if err := filepath.Walk(cm.dir, wf); err != nil {
 		return err
 	}
-	heap.Init(&cm.lru)
+	heap.Init(cm)
 
 	cm.maint()
 
@@ -240,7 +247,7 @@ func (cm *Storage) Insert(filename string, fi *apt.FileInfo) error {
 			})
 		}
 		cm.used -= existing.Size()
-		heap.Remove(&cm.lru, existing.index)
+		heap.Remove(cm, existing.index)
 		delete(cm.cache, p)
 		if log.Enabled(log.LvDebug) {
 			log.Debug("deleted existing item", map[string]interface{}{
@@ -256,10 +263,11 @@ func (cm *Storage) Insert(filename string, fi *apt.FileInfo) error {
 
 	e := &entry{
 		FileInfo: fi,
-		atime:    atomic.AddInt64(&cm.lclock, 1),
+		atime:    cm.lclock,
 	}
 	cm.used += fi.Size()
-	heap.Push(&cm.lru, e)
+	cm.lclock++
+	heap.Push(cm, e)
 	cm.cache[p] = e
 
 	cm.maint()
@@ -304,8 +312,9 @@ func (cm *Storage) Lookup(fi *apt.FileInfo) (*os.File, error) {
 		return nil, ErrNotFound
 	}
 
-	e.atime = atomic.AddInt64(&cm.lclock, 1)
-	heap.Fix(&cm.lru, e.index)
+	e.atime = cm.lclock
+	cm.lclock++
+	heap.Fix(cm, e.index)
 	return os.Open(filepath.Join(cm.dir, e.FilePath()))
 }
 
@@ -314,7 +323,7 @@ func (cm *Storage) ListAll() []*apt.FileInfo {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 
-	l := make([]*apt.FileInfo, cm.lru.Len())
+	l := make([]*apt.FileInfo, cm.Len())
 	for i, e := range cm.lru {
 		l[i] = e.FileInfo
 	}
@@ -342,7 +351,7 @@ func (cm *Storage) Delete(p string) error {
 	}
 
 	cm.used -= e.Size()
-	heap.Remove(&cm.lru, e.index)
+	heap.Remove(cm, e.index)
 	delete(cm.cache, p)
 	log.Info("deleted item", map[string]interface{}{
 		"path": p,
