@@ -36,16 +36,22 @@ func (fi *FileInfo) SetLastModified(t time.Time) {
 
 // Same returns true if t has the same checksum values.
 func (fi *FileInfo) Same(t *FileInfo) bool {
-	if fi.path != t.path || fi.size != t.size {
+	if fi == t {
+		return true
+	}
+	if fi.path != t.path {
 		return false
 	}
-	if fi.md5sum != nil && !bytes.Equal(fi.md5sum, t.md5sum) {
+	if fi.size != t.size {
 		return false
 	}
-	if fi.sha1sum != nil && !bytes.Equal(fi.sha1sum, t.sha1sum) {
+	if fi.md5sum != nil && bytes.Compare(fi.md5sum, t.md5sum) != 0 {
 		return false
 	}
-	if fi.sha256sum != nil && !bytes.Equal(fi.sha256sum, t.sha256sum) {
+	if fi.sha1sum != nil && bytes.Compare(fi.sha1sum, t.sha1sum) != 0 {
+		return false
+	}
+	if fi.sha256sum != nil && bytes.Compare(fi.sha256sum, t.sha256sum) != 0 {
 		return false
 	}
 	return true
@@ -68,13 +74,13 @@ func (fi *FileInfo) HasChecksum() bool {
 
 // CalcChecksums calculates checksums and stores them in fi.
 func (fi *FileInfo) CalcChecksums(data []byte) {
+	md5sum := md5.Sum(data)
+	sha1sum := sha1.Sum(data)
+	sha256sum := sha256.Sum256(data)
 	fi.size = uint64(len(data))
-	sum := md5.Sum(data)
-	fi.md5sum = sum[:]
-	sum2 := sha1.Sum(data)
-	fi.sha1sum = sum2[:]
-	sum3 := sha256.Sum256(data)
-	fi.sha256sum = sum3[:]
+	fi.md5sum = md5sum[:]
+	fi.sha1sum = sha1sum[:]
+	fi.sha256sum = sha256sum[:]
 }
 
 // AddPrefix creates a new FileInfo by prepending prefix to the path.
@@ -191,6 +197,9 @@ func (fi *FileInfo) UnmarshalJSON(data []byte) error {
 			fi.lastModified = t
 		}
 	}
+	fi.md5sum = md5sum
+	fi.sha1sum = sha1sum
+	fi.sha256sum = sha256sum
 	return nil
 }
 
