@@ -459,10 +459,11 @@ RETRY:
 
 	if ok {
 		f, err := storage.Lookup(fi)
-		if err == nil {
+		switch err {
+		case nil:
 			return http.StatusOK, f, nil
-		}
-		if err != ErrNotFound {
+		case ErrNotFound:
+		default:
 			log.Error("lookup failure", map[string]interface{}{
 				"error": err.Error(),
 			})
@@ -471,10 +472,10 @@ RETRY:
 	}
 
 	// not found in storage.
-	c.dlLock.Lock()
+	c.dlLock.RLock()
 	ch, chOk := c.dlChannels[p]
 	result, resultOk := c.results[p]
-	c.dlLock.Unlock()
+	c.dlLock.RUnlock()
 
 	if resultOk && result != http.StatusOK {
 		return result, nil, nil
