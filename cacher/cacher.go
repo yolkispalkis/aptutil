@@ -30,9 +30,9 @@ const (
 
 // addPrefix add prefix for each *FileInfo in fil.
 func addPrefix(prefix string, fil []*apt.FileInfo) []*apt.FileInfo {
-	ret := make([]*apt.FileInfo, len(fil))
-	for i, fi := range fil {
-		ret[i] = fi.AddPrefix(prefix)
+	ret := make([]*apt.FileInfo, 0, len(fil))
+	for _, fi := range fil {
+		ret = append(ret, fi.AddPrefix(prefix))
 	}
 	return ret
 }
@@ -50,7 +50,7 @@ type Cacher struct {
 	fiLock sync.RWMutex
 	info   map[string]*apt.FileInfo
 
-	dlLock     sync.Mutex
+	dlLock     sync.RWMutex
 	dlChannels map[string]chan struct{}
 	results    map[string]int
 
@@ -140,15 +140,15 @@ func NewCacher(config *Config) (*Cacher, error) {
 			return nil, errors.Wrap(err, "ExtractFileInfo("+fi.Path()+")")
 		}
 		fil = addPrefix(t[0], fil)
-		c.fiLock.Lock()
+
 		for _, fi2 := range fil {
 			c.info[fi2.Path()] = fi2
 		}
-		c.fiLock.Unlock()
+
 	}
 
 	// add meta files w/o checksums (Release, Release.gpg, and InRelease).
-	c.fiLock.Lock()
+
 	for _, fi := range metas {
 		p := fi.Path()
 		if _, ok := c.info[p]; !ok {
@@ -156,7 +156,6 @@ func NewCacher(config *Config) (*Cacher, error) {
 			c.maintMeta(p)
 		}
 	}
-	c.fiLock.Unlock()
 
 	return c, nil
 }
@@ -253,6 +252,8 @@ func (c *Cacher) Download(p string, valid *apt.FileInfo) <-chan struct{} {
 	}
 
 	c.dlLock.Lock()
+	defer c.dlLock.Unlock()
+
 	ch, ok := c.dlChannels[p]
 	if ok {
 		c.dlLock.Unlock()
