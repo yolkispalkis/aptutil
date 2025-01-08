@@ -140,15 +140,12 @@ func NewCacher(config *Config) (*Cacher, error) {
 			return nil, errors.Wrap(err, "ExtractFileInfo("+fi.Path()+")")
 		}
 		fil = addPrefix(t[0], fil)
-
 		for _, fi2 := range fil {
 			c.info[fi2.Path()] = fi2
 		}
-
 	}
 
 	// add meta files w/o checksums (Release, Release.gpg, and InRelease).
-
 	for _, fi := range metas {
 		p := fi.Path()
 		if _, ok := c.info[p]; !ok {
@@ -256,14 +253,11 @@ func (c *Cacher) Download(p string, valid *apt.FileInfo) <-chan struct{} {
 
 	ch, ok := c.dlChannels[p]
 	if ok {
-		c.dlLock.Unlock()
 		return ch
 	}
 
 	ch = make(chan struct{})
 	c.dlChannels[p] = ch
-	c.dlLock.Unlock()
-
 	well.Go(func(ctx context.Context) error {
 		c.download(ctx, p, u, valid)
 		return nil
@@ -303,6 +297,9 @@ func (c *Cacher) download(ctx context.Context, p string, u *url.URL, valid *apt.
 	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
 	defer cancel()
 
+	// imitation apt-get command
+	// NOTE: apt-get sets If-Modified-Since and makes a request to the server,
+	// but the current aptutil cannot handle this because it cold-starts every time.
 	header := http.Header{}
 	header.Add("Cache-Control", "max-age=0")
 	header.Add("User-Agent", "Debian APT-HTTP/1.3 (aptutil)")
